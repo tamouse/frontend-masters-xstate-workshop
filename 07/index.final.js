@@ -1,12 +1,14 @@
-import { createMachine, assign, interpret } from 'xstate';
+import { createMachine, assign, interpret } from "xstate";
 
-const elBox = document.querySelector('#box');
+const SIGN_IN = "SIGN_IN";
+
+const elBox = document.querySelector("#box");
 const elBody = document.body;
-const elButton = document.querySelector('#button');
+const elButton = document.querySelector("#button");
 
 const assignPoint = assign({
   px: (context, event) => event.clientX,
-  py: (context, event) => event.clientY,
+  py: (context, event) => event.clientY
 });
 
 const assignPosition = assign({
@@ -19,7 +21,7 @@ const assignPosition = assign({
   dx: 0,
   dy: 0,
   px: 0,
-  py: 0,
+  py: 0
 });
 
 const assignDelta = assign({
@@ -28,23 +30,23 @@ const assignDelta = assign({
   },
   dy: (context, event) => {
     return event.clientY - context.py;
-  },
+  }
 });
 
 const resetPosition = assign({
   dx: 0,
   dy: 0,
   px: 0,
-  py: 0,
+  py: 0
 });
 
-const isAuthorized = (context) => {
+const isAuthorized = context => {
   return !!context.user;
 };
 
-const createDragDropMachine = (user) =>
+const createDragDropMachine = user =>
   createMachine({
-    initial: 'checkingAuth',
+    initial: "checkingAuth",
     context: {
       x: 0,
       y: 0,
@@ -52,100 +54,100 @@ const createDragDropMachine = (user) =>
       dy: 0,
       px: 0,
       py: 0,
-      user,
+      user
     },
     states: {
       checkingAuth: {
         on: {
-          '': [
+          "": [
             {
               cond: isAuthorized,
-              target: 'idle',
+              target: "idle"
             },
             {
-              target: 'unauthorized',
-            },
-          ],
-        },
+              target: "unauthorized"
+            }
+          ]
+        }
       },
       unauthorized: {
         on: {
           SIGN_IN: {
-            target: 'checkingAuth',
+            target: "checkingAuth",
             actions: assign({
               user: (_, event) => {
                 return event.user;
-              },
-            }),
-          },
-        },
+              }
+            })
+          }
+        }
       },
       idle: {
         on: {
           mousedown: {
             actions: assignPoint,
-            target: 'dragging',
-          },
-        },
+            target: "dragging"
+          }
+        }
       },
       dragging: {
         on: {
           mousemove: {
-            actions: assignDelta,
+            actions: assignDelta
           },
           mouseup: {
             actions: [assignPosition],
-            target: 'idle',
+            target: "idle"
           },
-          'keyup.escape': {
-            target: 'idle',
-            actions: resetPosition,
-          },
-        },
-      },
-    },
+          "keyup.escape": {
+            target: "idle",
+            actions: resetPosition
+          }
+        }
+      }
+    }
   });
 
 const service = interpret(createDragDropMachine(null));
 
-service.onTransition((state) => {
+service.onTransition(state => {
   elBox.dataset.state = state.value;
 
   if (state.changed) {
     console.log(state.context);
 
-    elBox.style.setProperty('--dx', state.context.dx);
-    elBox.style.setProperty('--dy', state.context.dy);
-    elBox.style.setProperty('--x', state.context.x);
-    elBox.style.setProperty('--y', state.context.y);
+    elBox.style.setProperty("--dx", state.context.dx);
+    elBox.style.setProperty("--dy", state.context.dy);
+    elBox.style.setProperty("--x", state.context.x);
+    elBox.style.setProperty("--y", state.context.y);
   }
 });
 
 service.start();
 
-elBox.addEventListener('mousedown', (event) => {
+elBox.addEventListener("mousedown", event => {
   service.send(event);
 });
 
-elBody.addEventListener('mousemove', (event) => {
+elBody.addEventListener("mousemove", event => {
   service.send(event);
 });
 
-elBody.addEventListener('mouseup', (event) => {
+elBody.addEventListener("mouseup", event => {
   service.send(event);
 });
 
-elBody.addEventListener('keyup', (e) => {
-  if (e.key === 'Escape') {
-    service.send('keyup.escape');
+elBody.addEventListener("keyup", e => {
+  if (e.key === "Escape") {
+    service.send("keyup.escape");
   }
 });
 
-elButton.addEventListener('click', () => {
+elButton.addEventListener("click", () => {
   service.send({
-    type: 'SIGN_IN',
+    type: SIGN_IN,
     user: {
-      name: 'David',
-    },
+      name: "David"
+    }
   });
 });
